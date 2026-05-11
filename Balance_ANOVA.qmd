@@ -1,0 +1,229 @@
+---
+title: 'Final Project'
+subtitle: "PSTAT122: Design and Analysis of Experiments" 
+
+author:
+  - name: "Shivum Ganesh | Baichuan Peng | William Drum"
+    #  - name: "Fall 2025"
+affiliation-title: "Quarter"
+format: 
+ html:
+    code-fold: true
+    code-line-numbers: true
+    code-copy: true
+    code-tools: true
+    self-contained: true
+    toc: false
+    toc-location: left
+    number-sections: true
+    geometry: margin=0.6in
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(message =  FALSE)
+knitr::opts_chunk$set(warning =  FALSE)
+knitr::opts_chunk$set(error =  FALSE)
+library(dplyr)
+library(knitr)
+
+```
+
+SUMMARY: This is an analysis of variance project studying the effects of factors that affect balance, which was generalized to standing alone on one's dominant leg. A factorial design was used to manipulate the human optical system, vestibular system and the resulting neuromuscular systems of each individual to determine the effects of compromising each of these systems, using a relatively small amount of data. It was concluded that closing eyes while balancing (affecting the optical system) and being spun around before balancing (affecting the vestibular system) have significant and independent effects on balance (the neuromuscular system).
+
+# Introduction
+
+Our objective in this project is to gain insight on potential factors that affect human balance. To do this, we decided to consider balance post-spinning and with eyes closed. Balance is a delicate combination of systems, mainly the eyes (optical system), inner ear (vestibular system), and muscles (neuromuscular system). We chose our factors with the goal of affecting the eyes and the inner ear. Closing the eyes trivially affects the optical system, and spins affect the vestibular system by moving and disturbing the fluid in the inner ear, which continues to move even when done spinning. We then decided on a factorial design, so we could analyze each combination of factor levels.
+
+**Research Question:** How do different physical conditions, such as being spun around and keeping eyes closed, affect the ability of a person to balance solely on their dominant leg?
+
+**Response Variable:** amount of time able to stand on dominant leg.
+
+**Factors:** Being spun around (fixed, 2 levels), Eyes closed/open (fixed, 2 levels)
+
+# Experimental Design
+
+For this experiment, we have chosen a 2 x 2 factorial design because we want to study the effects of spinning, eye condition, and their combined effect at the same time. This design is efficient because it allows us to compare all conditions within one experiment instead of running multiple separate experiments.
+
+The experiment contains two factors, spinning and eyes closed/open. There are two levels for each factor:
+
+-   Spinning: being spun 5 times beforehand, no spinning
+
+-   Eyes: open, closed.
+
+These factors are fixed because the specific levels were deliberately chosen and controlled by the experimenters. Below is a table showing each combination of factor levels:
+
+|                       |                     |
+|-----------------------|---------------------|
+| 5 spins, eyes closed  | 5 spins, eyes open  |
+| No spins, eyes closed | No spins, eyes open |
+
+The response variable in this study is the amount of time a participant is able to stand on their dominant leg without losing balance. This variable is measured in seconds and is continuous and quantitative. Timing begins the moment the participant lifts their non-dominant foot off the ground and ends when balance is lost.
+
+As this is a factorial design, each test subject completed every factor level combination twice, for a total of eight trials per test subject. The order in which the trials were completed was randomized using this code:
+
+```{r}
+spinning_levels <- c("5 spins", "No spins")
+eyes_levels <- c("Eyes closed", "Eyes open")
+base_design <- expand.grid(Spinning = spinning_levels, Eyes = eyes_levels)
+full_design <- base_design[rep(1:nrow(base_design), 2), ]
+randomized_trials <- full_design[sample(nrow(full_design)), ]
+randomized_trials$Trial_ID <- 1:8
+#print(randomized_trials)
+```
+
+For this experiment, the control condition is balancing with no spins beforehand and with eyes open.
+
+Randomization was implemented by randomizing the order in which each test subject performed their trials. Replication was implemented by having each subject perform each condition twice in the experiment. Blocking was not used in this factorial design. However, some potential nuisance factors were controlled for. We determined that everyone should use their dominant leg only for this experiment, to even the playing field, since we reasoned that using non-dominant leg may be disadvantageous. We had 9 test subjects perform 2 trials for each condition, for a total of 18 observations per condition.
+
+# Data Collection
+
+-   **Procedure**
+
+The experiment was conducted in a controlled indoor environment to minimize external distractions and ensure participant safety. Each participant was asked to stand on their dominant leg. Depending on the assigned treatment condition, the participant either kept their eyes open or closed, and either completed no spins or five full spins before attempting to balance. Timing began when the participant lifted their non-dominant foot and ended when balance was lost (i.e., when the raised foot touched the ground)
+
+-   **Challenges and adjustment**
+
+Each of us collected our data separately. We tried to be random with who we selected, but it was a convenience sample - people chosen tended to be roommates, friends, and others in our close proximity. Therefore, the tests were conducted in various places, depending on where us testers met the test subjects. Further, subjects were under a variety of different conditions at the time when data were collected. One subject had just completed an hour-long run and two others were mid warm up to play volleyball. This is certainly random, but has potential to bias our distribution given the low number of samples, and likely significantly increased variability.
+
+-   **Data representation**
+
+```{r}
+times <- c(
+  32.4, 32.9, 38.5, 42.42, 28.4, 36.1, 30.42, 30.08, 50.75, 32.11, 28.31, 26.21, 18.58, 45.0, 27.86, 33.85, 85.04, 79.93, #control
+  8.54, 10.8, 12.3, 17.62, 28.4, 6.7, 16.71, 32.32, 4.33, 2.94, 12.7, 7.54, 20.38, 46.48, 8.56, 10.09, 90.05, 109.43, #eyesclosed
+  14.82, 7.66, 16.2, 18.7, 12.1, 13.21, 11.49, 10.34, 2.33, 1.72, 2.58, 2.88, 32.96, 27.76, 4.05, 3.62, 81.75, 92.73, #5spins
+  2.45, 2.55, 5.53, 5.51, 2.34, 5.25, 9.17, 5.38, 1.39, 1.12, 1.7, 1.47, 15.38, 16.16, 1.94, 1.61, 50.65, 40.38 #both
+)
+
+spins <- rep(c("0 Spins", "5 Spins"), each = 36)
+eyes <- rep(c("Open", "Closed"), each = 18, times = 2)
+df <- data.frame(spins, eyes, times)
+df$spins <- as.factor(df$spins)
+df$eyes  <- as.factor(df$eyes)
+wide_df <- data.frame(Control = times[1:18],Eyes_Closed = times[19:36],
+                      Spins_5 = times[37:54],Both = times[55:72])
+knitr::kable(wide_df, caption = "Factorial Balance Time Data (In seconds)")
+summary_table <- df %>%
+  group_by(spins, eyes) %>%
+  summarise(
+    mean = mean(times),
+    sd = sd(times),
+    n = n())
+print(summary_table)
+
+```
+
+# Analysis
+
+-   **Exploratory Data**:
+
+```{r}
+summary_table <- df %>%
+  group_by(spins, eyes) %>%
+  summarise(
+    mean = mean(times),
+    sd = sd(times),
+    n = n())
+print(summary_table)
+by(df$times, list(df$spins, df$eyes), summary)# summary of each treat
+```
+
+Our data show a clear effect of both spinning and visual condition on balance time. When no spins were applied, participants were able to balance longer on average, with a mean of 38.83 seconds for the eyes open condition and 24.77 seconds for the eyes closed condition. This suggests that, even without spinning, closing the eyes is associated with a reduction in balance time.
+
+When five spins were introduced, the average balance time decreased substantially in both visual conditions. The lowest mean balance time occurred in the 5 spins + eyes closed condition (9.44 seconds), while the 5 spins + eyes open condition showed a higher mean (19.83 seconds). This indicates that participants generally performed better with their eyes open than closed, regardless of whether spinning occurred.
+
+The standard deviations are relatively large in several conditions, particularly in the 0 spins + closed and 5 spins + eyes open groups, meaning that there are considerably large variability in individual performance. The presence of very large maximum values (e.g., 109.43 seconds and 92.73 seconds) suggests our outliers. Overall, the pattern of the means suggests strong effects associated with both spinning and eye condition, with differences between combinations of factor levels.
+
+```{r}
+boxplot(times~spins*eyes, data=df,  #visualizations of data
+        xlab = "Treatment (Spins × Eyes)",
+        ylab = "Balance Time (sec)",
+        main = "Boxplot of Balance Time by Treatment",
+        names = c("NoSpin-Open", "NoSpin-Closed",
+                  "Spin5-Open", "Spin5-Closed"),
+        col = c("lightblue","lightgreen","lightpink","lightgray"))
+```
+
+Our box plot shows the distribution of balance time is generally right-skewed, indicated by the long upper tails and the presence of several large high-end outliers which is likely contributing to our high standard deviations. This shows our data set have most of the data smaller than average.
+
+-   **Hypothesis Testing**:
+
+We conducted a two-way ANOVA to evaluate the effects of spins, eyes, and their interaction on balance time. The hypotheses for the main effects and interaction were:
+
+Let Spins effect $H^e$ be ...$$ H_{0}^s : \mu_{spins} = \mu_{none}$$ $$ H_{1}^s : \mu_{spins} \ne \mu_{none}$$
+
+Let Eyes effect $H^s$ be ... $$ H_{0}^e : \mu_{open} = \mu_{closed} $$ $$ H_{1}^e : \mu_{open} \ne \mu_{closed} $$
+
+Let Interaction effect $H^I$ be ... $$H_0^I : (\mu_{Spins + Closed} - \mu_{Spins + Open}) = (\mu_{No Spins + Closed} - \mu_{No Spins + Open}),$$ $$ H_1^I : (\mu_{Spins + Closed} - \mu_{Spins + Open}) \ne (\mu_{No Spins + Closed} - \mu_{No Spins + Open})$$
+
+The fitted ANOVA model produced the following results:
+
+```{r}
+fit <- aov(times ~ spins * eyes, data = df) 
+summary(fit)
+```
+
+-   Main Effect of Spins. The effect of spinning is statistically significant (F = 10.308, p = 0.00202). We reject $H_{0}^s$ and conclude that balance time differs between spun and non-spun conditions. The exploratory data also support this, with noticeably lower times in the spin groups.
+
+-   Main Effect of Eyes. The effect of eye condition is also significant (F = 5.225, p = 0.02539). We reject $H_{0}^e$ and conclude that balance time differs between eyes-open and eyes-closed conditions. Participants generally balanced longer with their eyes open.
+
+-   Interaction Effect. The interaction between spins and eyes is not statistically significant (F = 0.118, p = 0.7325). We fail to reject $H_0^I$, indicating that the combined effect of spins and eye condition does not differ from what would be expected based on the sum of their individual main effects. In other words, the effect of spins is similar whether the eyes are open or closed, and vice versa. This is also align with our observation with interaction plot below which shows downward parallel trends, indicating that the effect of spins on balance time is similar regardless of whether the eyes are open or closed.
+
+```{r}
+interaction.plot(df$spins, df$eyes, df$times) # interaction plot
+```
+
+Overall, both spinning and eye condition independently affect balance time. However, there is no evidence of an interaction, meaning the impact of one factor does not depend on the level of the other.
+
+-   Assumption Check:
+
+To test the validity of the two-way ANOVA model, we evaluated the assumptions of homogeneity of variance and normality of residuals. Homogeneity of variances was tested using Bartlett’s test, which produced a p-value of $0.01093$. Since this value is less than 0.05, we reject the null hypothesis of equal variances, indicating that the variances are not homogeneous across the four treatment groups.
+
+Normality of residuals was assessed using the Shapiro–Wilk test, which yielded a test statistic of W = $0.712$ with a p-value of $1.379*10^{-10}$. This extremely small p-value indicate the violation to the assumption of normality, indicating that the residuals deviate significantly from a normal distribution. This result is consistent with the strong right-skewness and outliers observed in the exploratory data analysis.
+
+```{r}
+bartlett.test(times ~ interaction(spins, eyes), data = df)
+```
+
+```{r}
+shapiro.test(residuals(fit))
+```
+
+Removing Outlier Samples:
+
+```{r}
+new_indices <- c(1:16, 19:34, 37:52, 55:70)
+
+df_new <- df[new_indices, ]
+fit_new <- aov(times ~ spins * eyes, data = df_new)
+summary(fit_new)
+```
+
+```{r}
+bartlett.test(times ~ interaction(spins, eyes), data = df_new)
+shapiro.test(residuals(fit_new))
+```
+
+By removing the outliers, we could see all the null hypothesis are rejected, meaning that we have significant main effect and interaction effect. However, the test data violate the assumptions of normality and homoscedasticity. This possibly indicate systematic right skewness of our data.
+
+# Conclusions
+
+-   key findings
+
+Our study investigated the effects of spinning and eye condition on balance time using a 2 × 2 factorial design. The two-way ANOVA results showed that both spinning and eye condition had statistically significant main effects on balance time. Participants generally balanced for a shorter time after spinning compared to not spinning, and they were able to balance longer with their eyes open compared to eyes closed.
+
+The interaction effect between spinning and eye condition was not statistically significant, indicating that the effect of spinning on balance does not depend on whether the eyes are open or closed. This suggest that spinning and eye condition each independently influence balance performance.
+
+However, the violations of our inherent assumptions prevent a glaring fault in our study, the lack of a vast enough data set from which to run our ANOVA model. Given the instructions of the project, we were not able to collect enough data to generate a sample population that we found to be normal. At first glance, it appeared that removing the most significant outlier from our dataset might correct these violations, but even after removing it, our dataset still fails the normality of residuals and homoscedasticity assumptions at the alpha level $\alpha = 0.05$. More data is required to be able to confidently reject any of our null hypotheses despite encouraging p-values.
+
+-   Comment on limitations and possible improvements.
+
+First, the balance time data shows strong right skewness and large variability, with the presence of extreme large outliers, which led to violations of the normality and equal variance assumptions required for 2 factorial test.
+
+Second, our data set includes only 9 observations, giving us a very small sample size. This reduces the reliability of our results and make our result more sensitive to extreme values, and add uncertainty to our conclusion.
+
+One potential area for improvement could be rigorously standardizing the procedure. Together, we created a baseline idea for how our test subjects should proceed and directed the subjects to the best of our abilities but we did not predetermine, for example, a specific 'break' time in between individual iterations of our study nor a set 'rate' at which to spin. These limitations inevitably add within-group variability, which muddies the precision of our data. We also did not strictly define the limitations for test subjects for foot movement such as hopping, which was able to extend times significantly.
+
+# Appendices
+
+-   `R` code.
